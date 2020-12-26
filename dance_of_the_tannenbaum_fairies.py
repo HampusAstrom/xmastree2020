@@ -4,6 +4,14 @@ import numpy as np
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
+def point_dist(a, b):
+    return np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2)
+
+def in_tree(point, top, bot, rad):
+    z = point[2]
+    dist_to_center = np.sqrt(point[0]**2 + point[1]**2)
+    return dist_to_center < (top - z) * rad/(top - bot) and z >= bot
+
 def visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax):
     #temporary to show me what i am doing without haing a board
 
@@ -17,6 +25,8 @@ def visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax):
     pixels_rgb = pixels[:, [1, 0, 2]]
     x, y, z = np.array([(x, y, z) for (x, y, z) in coords]).T
     ax.scatter(xs=x, ys=y, zs=z, c=pixels_rgb/255)
+    #ax.plot([-237, 0, 237], [0, 0, 0], zs=[-430, 430, -430])
+    #ax.plot([0, 0, 0], [-237, 0, 237], zs=[-430, 430, -430])
     plt.pause(0.05)
     plt.show(block=False)
 
@@ -33,7 +43,7 @@ def xmaslight():
     import math
 
     # You are welcome to add any of these:
-    import random as rnd
+    # import random as rnd
     import numpy as np
     # import scipy
     # import sys
@@ -78,6 +88,75 @@ def xmaslight():
     ymax = max(y)
     zmin = min(z)
     zmax = max(z)
+
+    # VARIOUS SETTINGS
+
+    # number of fairies in the tree, max 6 for now
+    num_fairies = 3
+
+    # pause between cycles (normally zero as it is already quite slow)
+    slow = 0
+
+    # buffer factor to keep the fey within the tree, as they whimper out outside :P
+    buffer_factor = 1.0
+
+    # how quickly the fairies change their momentum in 3d
+    momentum_shift_multiplier = 10.0
+
+    # fairy glow size, currently diminishing linearly
+    glow_size = 200
+
+    # INITIALISE SOME VALUES
+
+    # calculate approximate cone for the tree to make sure the fairies stay within the tree
+    # cone is set to be slightly smaller than the tree using buffer factor
+    diam = min([xmax - xmin, ymax - ymin]) * buffer_factor
+    rad = diam/2
+    height = (zmax - zmin) * buffer_factor
+    top = height/2
+    bot = -height/2
+
+    fey_colours = [[0, 100, 100], [100, 0, 100], [100, 100, 0], [150, 25, 25], [25, 150, 25], [25, 25, 150]]
+
+    fairies = []
+
+    # initialize fairies
+    for i in range(num_fairies):
+        fairies.append({'colour': fey_colours[i], 'position': [0, 0, 0], 'momentum': [0, 0, 0]})
+
+    while(True):
+        time.sleep(slow)
+
+        # constrained brownian motion with momentum
+        for f in fairies:
+            f['momentum'] += (np.random.random(3) * 2 - 1) * momentum_shift_multiplier
+            if in_tree(f['position'] + f['momentum'], top, bot, rad):
+                f['position'] += f['momentum']
+            elif in_tree(f['position'] - f['momentum'], top, bot, rad):
+                f['momentum'] = - f['momentum']
+                f['position'] += f['momentum']
+            else:
+                f['momentum'] = [0, 0, 0]
+
+        # update pixels based on fey gaussians?
+        for i in range(PIXEL_COUNT):
+            if in_tree(coords[i], top, bot, rad):
+                colour = np.array([0, 0, 0])
+                for f in fairies:
+                    dist = point_dist(coords[i], f['position'])
+                    np.add(colour, np.multiply(max(1 - dist/glow_size, 0), f['colour']), out=colour, casting="unsafe")
+
+                colour = np.minimum(colour, [255, 255, 255])
+                pixels[i] = colour.astype(int)
+
+        visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax)
+
+
+
+
+
+    #####################################################################
+    # leaving old code down here if I need to test anything on it for now
 
     # I get a list of the heights which is not overly useful here other than to set the max and min altitudes
     heights = []
