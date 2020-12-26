@@ -4,8 +4,15 @@ import numpy as np
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-def visualize_without_board(pixels, coords):
+def visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax):
     #temporary to show me what i am doing without haing a board
+
+    # use same scaling for all dimensions
+    mn = min([xmin, ymin, zmin])
+    mx = max([xmax, ymax, zmax])
+    ax.set_xlim3d(mn, mx)
+    ax.set_ylim3d(mn, mx)
+    ax.set_zlim3d(mn, mx)
 
     pixels_rgb = pixels[:, [1, 0, 2]]
     x, y, z = np.array([(x, y, z) for (x, y, z) in coords]).T
@@ -62,6 +69,15 @@ def xmaslight():
 
 
     # YOU CAN EDIT FROM HERE DOWN
+
+    x, y, z = np.array([(x, y, z) for (x, y, z) in coords]).T
+
+    xmin = min(x)
+    xmax = max(x)
+    ymin = min(y)
+    ymax = max(y)
+    zmin = min(z)
+    zmax = max(z)
 
     # I get a list of the heights which is not overly useful here other than to set the max and min altitudes
     heights = []
@@ -122,7 +138,7 @@ def xmaslight():
         # use the show() option as rarely as possible as it takes ages
         # do not use show() each time you change a LED but rather wait until you have changed them all
         #pixels.show() #UNCOMMENT
-        visualize_without_board(pixels, coords)
+        visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax)
 
         # now we get ready for the next cycle
 
