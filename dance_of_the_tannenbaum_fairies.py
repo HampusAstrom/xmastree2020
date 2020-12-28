@@ -27,7 +27,7 @@ def visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax):
     ax.scatter(xs=x, ys=y, zs=z, c=pixels_rgb/255)
     #ax.plot([-237, 0, 237], [0, 0, 0], zs=[-430, 430, -430])
     #ax.plot([0, 0, 0], [-237, 0, 237], zs=[-430, 430, -430])
-    plt.pause(0.05)
+    plt.pause(0.01)
     plt.show(block=False)
 
 def xmaslight():
@@ -89,6 +89,8 @@ def xmaslight():
     zmin = min(z)
     zmax = max(z)
 
+
+
     # VARIOUS SETTINGS
 
     # number of fairies in the tree, max 6 for now
@@ -105,6 +107,11 @@ def xmaslight():
 
     # fairy glow size, currently diminishing linearly
     glow_size = 200
+
+    # make fading trails after fairies, higher value -> longer trails, between 0 and 1
+    trail_factor = 0.5
+
+
 
     # INITIALISE SOME VALUES
 
@@ -132,8 +139,8 @@ def xmaslight():
             f['momentum'] += (np.random.random(3) * 2 - 1) * momentum_shift_multiplier
             if in_tree(f['position'] + f['momentum'], top, bot, rad):
                 f['position'] += f['momentum']
-            elif in_tree(f['position'] - f['momentum'], top, bot, rad):
-                f['momentum'] = - f['momentum']
+            elif in_tree(f['position'] - f['momentum']/2, top, bot, rad):
+                f['momentum'] = - f['momentum']/2
                 f['position'] += f['momentum']
             else:
                 f['momentum'] = [0, 0, 0]
@@ -147,111 +154,10 @@ def xmaslight():
                     np.add(colour, np.multiply(max(1 - dist/glow_size, 0), f['colour']), out=colour, casting="unsafe")
 
                 colour = np.minimum(colour, [255, 255, 255])
-                pixels[i] = colour.astype(int)
+                pixels[i] = np.maximum(colour, pixels[i]*trail_factor).astype(int)
+                # pixels[i] = colour.astype(int) #UNCOMMENT IF LINE ABOVE DOES NOT WORK
 
         visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax)
-
-
-
-
-
-    #####################################################################
-    # leaving old code down here if I need to test anything on it for now
-
-    # I get a list of the heights which is not overly useful here other than to set the max and min altitudes
-    heights = []
-    for i in coords:
-        heights.append(i[2])
-
-    min_alt = min(heights)
-    max_alt = max(heights)
-
-    # VARIOUS SETTINGS
-
-    # how much the rotation points moves each time
-    dinc = 1
-
-    # a buffer so it does not hit to extreme top or bottom of the tree
-    buffer = 200
-
-    # pause between cycles (normally zero as it is already quite slow)
-    slow = 0
-
-    # startin angle (in radians)
-    angle = 0
-
-    # how much the angle changes per cycle
-    inc = 0.1
-
-    # the two colours in GRB order
-    # if you are turning a lot of them on at once, keep their brightness down please
-    colourA = [0,50,50] # purple
-    colourB = [50,50,0] # yellow
-
-
-    # INITIALISE SOME VALUES
-
-    swap01 = 0
-    swap02 = 0
-
-    # direct it move in
-    direction = -1
-
-    # the starting point on the vertical axis
-    c = 100
-
-    # yes, I just run which run is true
-    run = 1
-    while run == 1:
-
-        time.sleep(slow)
-
-        LED = 0
-        while LED < len(coords):
-            if math.tan(angle)*coords[LED][1] <= coords[LED][2]+c:
-                pixels[LED] = colourA
-            else:
-                pixels[LED] = colourB
-            LED += 1
-
-        # use the show() option as rarely as possible as it takes ages
-        # do not use show() each time you change a LED but rather wait until you have changed them all
-        #pixels.show() #UNCOMMENT
-        visualize_without_board(pixels, coords, xmin, xmax, ymin, ymax, zmin, zmax)
-
-        # now we get ready for the next cycle
-
-        angle += inc
-        if angle > 2*math.pi:
-            angle -= 2*math.pi
-            swap01 = 0
-            swap02 = 0
-
-        # this is all to keep track of which colour is 'on top'
-
-        if angle >= 0.5*math.pi:
-            if swap01 == 0:
-                colour_hold = [i for i in colourA]
-                colourA =[i for i in colourB]
-                colourB = [i for i in colour_hold]
-                swap01 = 1
-
-        if angle >= 1.5*math.pi:
-            if swap02 == 0:
-                colour_hold = [i for i in colourA]
-                colourA =[i for i in colourB]
-                colourB = [i for i in colour_hold]
-                swap02 = 1
-
-        # and we move the rotation point
-        c += direction*dinc
-
-        if c <= min_alt+buffer:
-            direction = 1
-        if c >= max_alt-buffer:
-            direction = -1
-
-    return 'DONE'
 
 
 # yes, I just put this at the bottom so it auto runs
